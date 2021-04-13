@@ -65,7 +65,7 @@ def constrain(self):
     Constrain calls the constraint function.
     @ In, self, object, RAVEN container
     @ Out, explicitConstrain, float, positive if the constraint is satisfied
-          and negative if violated.
+           and negative if violated.
   """
   explicitConstrain = constraint(self.x,self.y)
   return explicitConstrain

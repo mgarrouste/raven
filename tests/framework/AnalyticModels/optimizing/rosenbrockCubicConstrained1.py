@@ -30,7 +30,22 @@ def evaluate(x,y):
   return (1- x)**2 + 100*(y-x**2)**2
 
 def constraint(x,y):
-  return 1 - (x-1)**3 + y
+  """
+    Evaluates the constraint function @ a given point $(x,y)$
+    @ In, self, object, RAVEN container
+    @ Out, g(x, y), float, constraint function after modifications
+                          $g(x, y) = y - (x-1)**3 - 1$
+    because the original constraint was (x-1)**3 - y + 1 <= 0
+            the way the constraint is designed is that
+            the constraint function has to be >= 0,
+            so if:
+            1) f(x,y) >= 0 then g = f
+            2) f(x,y) >= a then g = f - a
+            3) f(x,y) <= b then g = b - f
+            4) f(x,y)  = c then g = 0.001 - (f(x,y) - c)
+  """
+  g = y - (x-1)**3 - 1
+  return g
 
 ###
 # RAVEN hooks
@@ -47,16 +62,10 @@ def run(self,Inputs):
 
 def constrain(self):
   """
-    Evaluates the constraint function @ a given point ($\vec(x)$)
+    Constrain calls the constraint function.
     @ In, self, object, RAVEN container
-    @ Out, g(x1,x2), float, $g(\vec(x)) = x1 + x2 - 6$
-    because the original constraint was x1 + x2 > 6
-            the way the constraint is designed is that
-            the constraint function has to be >= 0,
-            so if:
-            1) f(x,y) >= 0 then g = f
-            2) f(x,y) >= a then g = f - a
-            3) f(x,y) <= b then g = b - f
-            4) f(x,y)  = c then g = 0.001 - (f(x,y) - c)
+    @ Out, explicitConstrain, float, positive if the constraint is satisfied
+           and negative if violated.
   """
-  return constraint(self.x,self.y)
+  explicitConstrain = constraint(self.x,self.y)
+  return explicitConstrain
