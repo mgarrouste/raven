@@ -21,6 +21,12 @@
 import numpy as np
 
 def evaluate(x,y):
+  """
+    Evaluates Rosenbrock function.
+    @ In, x, float, value
+    @ In, y, float, value
+    @ Out, evaluate, value at x, y
+  """
   return (1- x)**2 + 100*(y-x**2)**2
 
 def constraint(x,y):
@@ -31,7 +37,26 @@ def constraint(x,y):
 ###
 
 def run(self,Inputs):
+  """
+    RAVEN API
+    @ In, self, object, RAVEN container
+    @ In, Inputs, dict, additional inputs
+    @ Out, None
+  """
   self.ans = evaluate(self.x,self.y)
 
 def constrain(self):
+  """
+    Evaluates the constraint function @ a given point ($\vec(x)$)
+    @ In, self, object, RAVEN container
+    @ Out, g(x1,x2), float, $g(\vec(x)) = x1 + x2 - 6$
+    because the original constraint was x1 + x2 > 6
+            the way the constraint is designed is that
+            the constraint function has to be >= 0,
+            so if:
+            1) f(x,y) >= 0 then g = f
+            2) f(x,y) >= a then g = f - a
+            3) f(x,y) <= b then g = b - f
+            4) f(x,y)  = c then g = 0.001 - (f(x,y) - c)
+  """
   return constraint(self.x,self.y)
