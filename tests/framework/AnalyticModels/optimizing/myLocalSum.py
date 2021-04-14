@@ -47,6 +47,23 @@ def constraint(self):
   g = self.x1 + self.x2 - 6
   return g
 
+def impConstraint(self):
+  """
+    Evaluates the constraint function @ a given point ($\vec(x)$)
+    @ In, self, object, RAVEN container
+    @ Out, g(x1,x2), float, $g(\vec(x)) = x1 + x2 - 6$
+    because the original constraint was x1 + x2 > 6
+            the way the constraint is designed is that
+            the constraint function has to be >= 0,
+            so if:
+            1) f(x,y) >= 0 then g = f
+            2) f(x,y) >= a then g = f - a
+            3) f(x,y) <= b then g = b - f
+            4) f(x,y)  = c then g = 0.001 - (f(x,y) - c)
+  """
+  g = self.x1 + self.x2 + self.ans- 9
+  return g
+
 def run(self,Inputs):
   """
     RAVEN API
@@ -65,3 +82,13 @@ def constrain(self):
   """
   explicitConstrain = constraint(self)
   return explicitConstrain
+
+def impConstrain(self):
+  """
+    Constrain calls the constraint function.
+    @ In, self, object, RAVEN container
+    @ Out, explicitConstrain, float, positive if the constraint is satisfied
+           and negative if violated.
+  """
+  implicitConstrain = impConstraint(self)
+  return implicitConstrain
