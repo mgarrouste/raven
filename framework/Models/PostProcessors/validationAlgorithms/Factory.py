@@ -23,7 +23,7 @@ from EntityFactoryBase import EntityFactory
 
 from .ValidationBase import ValidationBase
 from .Probabilistic import Probabilistic
-#from .DSS import DSS
+from .PPDSSv2 import PPDSSv2
 #from .PCM import PCM
 from .Representativity import Representativity
 

@@ -22,3 +22,4 @@
 #from .ValidationBase import ValidationBase
 
 from .Factory import factory
+from .PPDSSv2 import PPDSSv2

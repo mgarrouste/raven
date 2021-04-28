@@ -18,7 +18,7 @@
 
   This class represents a base class for the validation algorithms
   It inherits from the PostProcessor directly
-  ##TODO: Recast it once the new PostProcesso API gets in place
+  ##TODO: Recast it once the new PostProcessor API gets in place
 """
 
 #External Modules------------------------------------------------------------------------------------

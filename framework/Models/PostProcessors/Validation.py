@@ -15,7 +15,7 @@
   Created on March 20, 2021
   @author: alfoa
   description: Postprocessor named Validation. This postprocessor is aimed to
-               to represent a gate for any validation tecniques and processes
+               to represent a gate for any validation techniques and processes
 """
 
 #External Modules---------------------------------------------------------------
