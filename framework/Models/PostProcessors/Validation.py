@@ -69,6 +69,10 @@ class Validation(PostProcessorInterface):
     metricInput.addParam("class", InputTypes.StringType)
     metricInput.addParam("type", InputTypes.StringType)
     specs.addSub(metricInput)
+    # parameters = InputData.parameterInputFactory('Parameters', contentType=InputTypes.StringListType)
+    # specs.addSub(parameters)
+    # targetParameters = InputData.parameterInputFactory('targetParameters', contentType=InputTypes.StringListType)
+    # specs.addSub(targetParameters)
     # registration of validation algorithm
     for typ in validationAlgorithms.factory.knownTypes():
       algoInput = validationAlgorithms.factory.returnClass(typ)

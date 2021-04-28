@@ -18,6 +18,9 @@
  @author: senrs
 """
 
+from __future__ import division, print_function, unicode_literals, absolute_import
+
+import sys
 import math
 import functools
 import copy
@@ -25,12 +28,8 @@ import scipy
 from scipy import interpolate, stats, integrate
 import numpy as np
 import six
-
 from utils.utils import UreturnPrintTag, UreturnPrintPostTag
 from .graphStructure import graphObject
-
-import MessageHandler # makes sure getMessageHandler is defined
-mh = getMessageHandler()
 
 def normal(x,mu=0.0,sigma=1.0):
   """
@@ -97,6 +96,23 @@ def createInterp(x, y, lowFill, highFill, kind='linear'):
       else:
         return highFill
   return myInterp
+
+def simpson(f, a, b, n):
+  """
+    Simpson integration rule
+    @ In, f, instance, the function to integrate
+    @ In, a, float, lower bound
+    @ In, b, float, upper bound
+    @ In, n, int, number of integration steps
+    @ Out, sumVar, float, integral
+  """
+  h = (b - a) / float(n)
+  y = np.zeros(n+1)
+  x = np.zeros(n+1)
+  for i in range(0, n+1):
+    x[i] = a + i*h
+    y[i] = f(x[i])
+  return integrate.simps(y, x)
 
 def countBins(sortedData, binBoundaries):
   """
@@ -830,13 +846,15 @@ def sizeMatch(var,sizeToCheck):
     sizeMatched = False
   return sizeMatched
 
-def readVariableGroups(xmlNode):
+def readVariableGroups(xmlNode, messageHandler, caller):
   """
     Reads the XML for the variable groups and initializes them
     Placed in mathUtils because it uses VariableGroups, which inherit from BaseClasses
     -> and hence all the rest of the required libraries.
     NOTE: maybe we should have a thirdPartyUtils that is different from utils and mathUtils?
     @ In, xmlNode, ElementTree.Element, xml node to read in
+    @ In, messageHandler, MessageHandler.MessageHandler instance, message handler to assign to the variable group objects
+    @ In, caller, MessageHandler.MessageUser instance, entity calling this method (needs to inherit from MessageHandler.MessageUser)
     @ Out, varGroups, dict, dictionary of variable groups (names to the variable lists to replace the names)
   """
   import VariableGroups
@@ -863,7 +881,7 @@ def readVariableGroups(xmlNode):
   graph = graphObject(deps)
   # sanity checking
   if graph.isALoop():
-    mh.error('mathUtils', IOError, 'VariableGroups have circular dependency!')
+    caller.raiseAnError(IOError, 'VariableGroups have circular dependency!')
   # ordered list (least dependencies first)
   hierarchy = list(reversed(graph.createSingleListOfVertices(graph.findAllUniquePaths(initials))))
 
@@ -872,7 +890,7 @@ def readVariableGroups(xmlNode):
   for name in hierarchy:
     if len(deps[name]):
       varGroup = VariableGroups.VariableGroup()
-      varGroup.readXML(nodes[name], varGroups)
+      varGroup.readXML(nodes[name], messageHandler, varGroups)
       varGroups[name] = varGroup
 
   return varGroups
@@ -943,6 +961,75 @@ def angleBetweenVectors(a, b):
     ang = np.arccos(np.clip(dot, -1, 1))
   ang = np.rad2deg(ang)
   return ang
+
+def partialDerivative(f, x0, var, n = 1, h = None, target = None):
+  """
+    Compute the n-th partial derivative of function f
+    with respect variable var (numerical differentation).
+    The derivative is computed with a central difference
+    approximation.
+    @ In, f, instance, the function to differentiate (format f(d) where d is a dictionary)
+    @ In, x0, dict, the dictionary containing the x0 coordinate
+    @ In, var, str, the variable of the resulting partial derivative
+    @ In, n, int, optional, the order of the derivative. (max 10)
+    @ In, h, float, optional, the step size, default automatically computed
+    @ In, target, str, optional, the target output in case the "f" returns a dict of outputs. Default (takes the first)
+    @ Out, deriv, float, the partial derivative of function f
+  """
+  import numdifftools as nd
+  assert(n <= 10)
+  def func(x, var, target=None):
+    """
+      Simple function wrapper for using scipy
+      @ In, x, float, the point at which the nth derivative is found
+      @ In, var, str, the variable in the dictionary x0 corresponding
+                      to the part derivative to compute
+      @ In, target, str, optional, the target output in case the "f" returns a dict of outputs. Default (takes the first)
+      @ Out, func, float, the evaluated function
+    """
+    d = copy.copy(x0)
+    d[var] = x
+    out = f(d)
+    if isinstance(out, dict):
+      return list(out.values())[0] if target is None else out[target]
+    else:
+      return out
+
+  do = nd.Derivative(func, order=n)
+  deriv = do(x0[var],var,target)
+  return deriv
+
+def derivatives(f, x0, var = None, n = 1, h = None, target=None):
+  """
+    Compute the n-th partial derivative of function f
+    with respect variable var (numerical differentation).
+    The derivative is computed with a central difference
+    approximation.
+    @ In, f, instance, the function to differentiate (format f(d) where d is a dictionary)
+    @ In, x0, dict, the dictionary containing the x0 coordinate {key:scalar or array of len(1)}
+    @ In, var, list, optional, the list of variables of the resulting partial derivative (if None, compute all)
+    @ In, n, int, optional, the order of the derivative. (max 10)
+    @ In, h, float, optional, the step size, default automatically computed
+    @ In, target, str, optional, the target output in case the "f" returns a dict of outputs. Default (all targets)
+    @ Out, deriv, dict, the partial derivative of function f
+  """
+  assert(n <= 10)
+  assert(isinstance(var, list) or isinstance(var, type(None)))
+  assert(len(list(x0.values())[0]) == 1)
+  targets = [target]
+  if target is None:
+    checkWorking = f(x0)
+    if isinstance(checkWorking, dict):
+      targets = checkWorking.keys()
+  deriv = {}
+  for t in targets:
+    for variable in (x0.keys() if var is None else var):
+      name = variable if t is None else "d{}|d{}".format(t, variable)
+      deriv[name] = partialDerivative(f, x0, variable, n = n, h = h, target=t)
+  return deriv
+
+
+
 
 # utility function for defaultdict
 def giveZero():
