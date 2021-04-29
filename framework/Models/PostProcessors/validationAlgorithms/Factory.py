@@ -25,7 +25,7 @@ from .ValidationBase import ValidationBase
 from .Probabilistic import Probabilistic
 #from .DSS import DSS
 #from .PCM import PCM
-#from .Representativity import Representativity
+from .Representativity import Representativity
 
 factory = EntityFactory('ValidationBase')
 # TODO map lower case to upper case, because of silly ROM namespace problems

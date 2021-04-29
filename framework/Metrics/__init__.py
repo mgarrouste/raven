@@ -27,5 +27,6 @@ from .CDFAreaDifference import CDFAreaDifference
 from .PDFCommonArea import PDFCommonArea
 #from .RACDistance import RACDistance
 from .ScipyMetric import ScipyMetric
+from .RepresentativityFactors import RepresentativityFactors
 
 from .Factory import factory
