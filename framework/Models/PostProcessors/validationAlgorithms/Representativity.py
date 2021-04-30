@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """
-  Created on April 04, 2021
+  Created on April 29, 2021
 
-  @author: alfoa
+  @author: Mohammad Abdo (@Jimmy-INL)
 
   This class represents a base class for the validation algorithms
   It inherits from the PostProcessor directly
@@ -27,7 +27,7 @@ import numpy as np
 
 #Internal Modules------------------------------------------------------------------------------------
 #from utils import xmlUtils
-#from utils import InputData, InputTypes
+from utils import InputData, InputTypes
 #import Files
 #import Distributions
 #import MetricDistributor
@@ -35,9 +35,9 @@ from utils import utils
 from .ValidationBase import ValidationBase
 #Internal Modules End--------------------------------------------------------------------------------
 
-class Probabilistic(ValidationBase):
+class Representativity(ValidationBase):
   """
-    Probabilistic is a base class for validation problems
+    Representativity is a base class for validation problems
     It represents the base class for most validation problems
   """
 
@@ -51,7 +51,12 @@ class Probabilistic(ValidationBase):
         specifying input of cls.
     """
     specs = super(ValidationBase, cls).getInputSpecification()
-    #specs.addSub(metricInput)
+    parametersInput = InputData.parameterInputFactory("Parameters", contentType=InputTypes.StringListType)
+    parametersInput.addParam("type", InputTypes.StringType)
+    specs.addSub(parametersInput)
+    targetParametersInput = InputData.parameterInputFactory("targetParameters", contentType=InputTypes.StringListType)
+    targetParametersInput.addParam("type", InputTypes.StringType)
+    specs.addSub(targetParametersInput)
     return specs
 
   def __init__(self):
@@ -63,8 +68,8 @@ class Probabilistic(ValidationBase):
     super().__init__()
     self.printTag = 'POSTPROCESSOR ValidationBase'
     self.dynamicType = ['static'] #  for now only static is available
-    self.acceptableMetrics = ["CDFAreaDifference", "PDFCommonArea"] #  acceptable metrics
-    self.name = 'Probabilistic'
+    self.acceptableMetrics = ["RepresentativityFactors"] #  acceptable metrics
+    self.name = 'Represntativity'
 
 
   def inputToInternal(self, currentInputs):

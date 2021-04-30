@@ -74,7 +74,7 @@ class RepresentativityFactors(Metric):
       @ In, xmlNode, xml.etree.Element, Xml element node
       @ Out, None
     """
-    paramInput = RepresntativityFactors.getInputSpecification()()
+    paramInput = Metric.getInputSpecification()()
     paramInput.parseNode(xmlNode)
     for child in paramInput.subparts:
       if child.getName() == "actionType":

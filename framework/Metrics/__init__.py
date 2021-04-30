@@ -19,14 +19,14 @@
 ## These lines ensure that we do not have to do something like:
 ## 'from OutStreamManagers.OutStreamPlot import OutStreamPlot' outside
 ## of this submodule
-from .Metric import Metric
-from .DTW import DTW
-from .SklMetric import SKL
-from .PairwiseMetric import PairwiseMetric
-from .CDFAreaDifference import CDFAreaDifference
-from .PDFCommonArea import PDFCommonArea
-#from .RACDistance import RACDistance
-from .ScipyMetric import ScipyMetric
-from .RepresentativityFactors import RepresentativityFactors
+# from .Metric import Metric
+# from .DTW import DTW
+# from .SklMetric import SKL
+# from .PairwiseMetric import PairwiseMetric
+# from .CDFAreaDifference import CDFAreaDifference
+# from .PDFCommonArea import PDFCommonArea
+# #from .RACDistance import RACDistance
+# from .ScipyMetric import ScipyMetric
+# # from .RepresentativityFactors import RepresentativityFactors
 
 from .Factory import factory

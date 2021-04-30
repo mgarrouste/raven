@@ -26,6 +26,7 @@ from .PairwiseMetric import PairwiseMetric
 from .CDFAreaDifference import CDFAreaDifference
 from .PDFCommonArea import PDFCommonArea
 from .ScipyMetric import ScipyMetric
+from .RepresentativityFactors import RepresentativityFactors
 
 factory = EntityFactory('Metric')
 factory.registerAllSubtypes(Metric)
