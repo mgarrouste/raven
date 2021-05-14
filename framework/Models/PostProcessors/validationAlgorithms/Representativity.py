@@ -33,6 +33,7 @@ from utils import InputData, InputTypes
 #import MetricDistributor
 from utils import utils
 from .ValidationBase import ValidationBase
+from utils.mathUtils import partialDerivative, derivatives
 #Internal Modules End--------------------------------------------------------------------------------
 
 class Representativity(ValidationBase):
@@ -66,66 +67,69 @@ class Representativity(ValidationBase):
       @ Out, None
     """
     super().__init__()
+    from Models.PostProcessors import factory as ppFactory # delay import to allow definition
     self.printTag = 'POSTPROCESSOR ValidationBase'
     self.dynamicType = ['static'] #  for now only static is available
     self.acceptableMetrics = ["RepresentativityFactors"] #  acceptable metrics
     self.name = 'Represntativity'
+    self.stat = ppFactory.returnInstance('BasicStatistics')
+    self.stat.what = ['NormalizedSensitivities'] # expected value calculation
 
 
-  def inputToInternal(self, currentInputs):
-    """
-      Method to convert an input object into the internal format that is
-      understandable by this pp.
-      @ In, currentInputs, list or DataObject, data object or a list of data objects
-      @ Out, measureList, list of (feature, target), the list of the features and targets to measure the distance between
-    """
-    if type(currentInputs) != list:
-      currentInputs = [currentInputs]
-    hasPointSet = False
-    hasHistorySet = False
-    #Check for invalid types
-    for currentInput in currentInputs:
-      inputType = None
-      if hasattr(currentInput, 'type'):
-        inputType = currentInput.type
+  # def inputToInternal(self, currentInputs):
+  #   """
+  #     Method to convert an input object into the internal format that is
+  #     understandable by this pp.
+  #     @ In, currentInputs, list or DataObject, data object or a list of data objects
+  #     @ Out, measureList, list of (feature, target), the list of the features and targets to measure the distance between
+  #   """
+  #   if type(currentInputs) != list:
+  #     currentInputs = [currentInputs]
+  #   hasPointSet = False
+  #   hasHistorySet = False
+  #   #Check for invalid types
+  #   for currentInput in currentInputs:
+  #     inputType = None
+  #     if hasattr(currentInput, 'type'):
+  #       inputType = currentInput.type
 
-      if isinstance(currentInput, Files.File):
-        self.raiseAnError(IOError, "Input type '", inputType, "' can not be accepted")
-      elif isinstance(currentInput, Distributions.Distribution):
-        pass #Allowed type
-      elif inputType == 'HDF5':
-        self.raiseAnError(IOError, "Input type '", inputType, "' can not be accepted")
-      elif inputType == 'PointSet':
-        hasPointSet = True
-      elif inputType == 'HistorySet':
-        hasHistorySet = True
-        if self.multiOutput == 'raw_values':
-          self.dynamic = True
-          if self.pivotParameter not in currentInput.getVars('indexes'):
-            self.raiseAnError(IOError, self, 'Pivot parameter', self.pivotParameter,'has not been found in DataObject', currentInput.name)
-          if not currentInput.checkIndexAlignment(indexesToCheck=self.pivotParameter):
-            self.raiseAnError(IOError, "HistorySet", currentInput.name," is not syncronized, please use Interfaced PostProcessor HistorySetSync to pre-process it")
-          pivotValues = currentInput.asDataset()[self.pivotParameter].values
-          if len(self.pivotValues) == 0:
-            self.pivotValues = pivotValues
-          elif set(self.pivotValues) != set(pivotValues):
-            self.raiseAnError(IOError, "Pivot values for pivot parameter",self.pivotParameter, "in provided HistorySets are not the same")
-      else:
-        self.raiseAnError(IOError, "Metric cannot process "+inputType+ " of type "+str(type(currentInput)))
-    if self.multiOutput == 'raw_values' and hasPointSet and hasHistorySet:
-        self.multiOutput = 'mean'
-        self.raiseAWarning("Reset 'multiOutput' to 'mean', since both PointSet and HistorySet are provided as Inputs. Calculation outputs will be aggregated by averaging")
+  #     if isinstance(currentInput, Files.File):
+  #       self.raiseAnError(IOError, "Input type '", inputType, "' can not be accepted")
+  #     elif isinstance(currentInput, Distributions.Distribution):
+  #       pass #Allowed type
+  #     elif inputType == 'HDF5':
+  #       self.raiseAnError(IOError, "Input type '", inputType, "' can not be accepted")
+  #     elif inputType == 'PointSet':
+  #       hasPointSet = True
+  #     elif inputType == 'HistorySet':
+  #       hasHistorySet = True
+  #       if self.multiOutput == 'raw_values':
+  #         self.dynamic = True
+  #         if self.pivotParameter not in currentInput.getVars('indexes'):
+  #           self.raiseAnError(IOError, self, 'Pivot parameter', self.pivotParameter,'has not been found in DataObject', currentInput.name)
+  #         if not currentInput.checkIndexAlignment(indexesToCheck=self.pivotParameter):
+  #           self.raiseAnError(IOError, "HistorySet", currentInput.name," is not syncronized, please use Interfaced PostProcessor HistorySetSync to pre-process it")
+  #         pivotValues = currentInput.asDataset()[self.pivotParameter].values
+  #         if len(self.pivotValues) == 0:
+  #           self.pivotValues = pivotValues
+  #         elif set(self.pivotValues) != set(pivotValues):
+  #           self.raiseAnError(IOError, "Pivot values for pivot parameter",self.pivotParameter, "in provided HistorySets are not the same")
+  #     else:
+  #       self.raiseAnError(IOError, "Metric cannot process "+inputType+ " of type "+str(type(currentInput)))
+  #   if self.multiOutput == 'raw_values' and hasPointSet and hasHistorySet:
+  #       self.multiOutput = 'mean'
+  #       self.raiseAWarning("Reset 'multiOutput' to 'mean', since both PointSet and HistorySet are provided as Inputs. Calculation outputs will be aggregated by averaging")
 
-    measureList = []
+  #   measureList = []
 
-    for cnt in range(len(self.features)):
-      feature = self.features[cnt]
-      target = self.targets[cnt]
-      featureData =  self.__getMetricSide(feature, currentInputs)
-      targetData = self.__getMetricSide(target, currentInputs)
-      measureList.append((featureData, targetData))
+  #   for cnt in range(len(self.features)):
+  #     feature = self.features[cnt]
+  #     target = self.targets[cnt]
+  #     featureData =  self.__getMetricSide(feature, currentInputs)
+  #     targetData = self.__getMetricSide(target, currentInputs)
+  #     measureList.append((featureData, targetData))
 
-    return measureList
+    # return measureList
 
   def initialize(self, features, targets, **kwargs):
     """
@@ -135,7 +139,10 @@ class Representativity(ValidationBase):
       @ In, kwargs, dict, keyword arguments
     """
     super().initialize(features, targets, **kwargs)
-
+    self.stat.toDo = {'NormalizedSensitivity':[{'targets':set(self.targets), 'prefix':'nsen'}]}
+    # self.stat.toDo = {'NormalizedSensitivity'[{'targets':set([self.targets]), 'prefix':'nsen'}]}
+    fakeRunInfo = {'workingDir':'','stepName':''}
+    self.stat.initialize(fakeRunInfo, self.Parameters, features, **kwargs)
 
   def _handleInput(self, paramInput):
     """
@@ -144,6 +151,11 @@ class Representativity(ValidationBase):
       @ Out, None
     """
     super()._handleInput(paramInput)
+    for child in paramInput.subparts:
+      if child.getName() == 'Parameters':
+        self.Parameters = child.value
+      elif child.getName() == 'targetParameters':
+        self.targetParameters = child.value
 
   def run(self, datasets, **kwargs):
     """
@@ -152,30 +164,19 @@ class Representativity(ValidationBase):
       @ In, kwargs, dict, keyword arguments
       @ Out, outputDict, dict, dictionary containing the results {"feat"_"target"_"metric_name":value}
     """
+    self.stat.run({'targets':{self.target:xarray.DataArray(self.functionS.evaluate(tempDict)[self.target])}})[self.computationPrefix +"_"+self.target]
     names = kwargs.get('dataobjectNames')
     outs = {}
-    for feat, targ in zip(self.features, self.targets):
+    for feat, targ, param, targParam in zip(self.features, self.targets, self.Parameters, self.targetParameters):
       featData = self._getDataFromDatasets(datasets, feat, names)
       targData = self._getDataFromDatasets(datasets, targ, names)
+      Parameters = self._getDataFromDatasets(datasets, param, names)
+      targetParameters = self._getDataFromDatasets(datasets, targParam, names)
+      senFOMs = partialDerivative(featData.data,np.atleast_2d(Parameters.data)[0,:],'x1')
+      # senFOMs = np.atleast_2d(Parameters.data)
+      senMeasurables = np.atleast_2d(targetParameters.data)
+      covParameters = senFOMs.T @ senMeasurables
       for metric in self.metrics:
         name = "{}_{}_{}".format(feat.split("|")[-1], targ.split("|")[-1], metric.name)
-        outs[name] = metric.evaluate(featData, targData)
+        outs[name] = metric.evaluate(featData, targData, senFOMs = senFOMs, senMeasurables=senMeasurables, covParameters=covParameters)
     return outs
-
-  #def run(self, inputIn):
-  #  """
-  #    This method executes the postprocessor action. In this case, it computes all the requested statistical FOMs
-  #    @ In,  inputIn, object, object contained the data to process. (inputToInternal output)
-  #    @ Out, outputDict, dict, Dictionary containing the results
-  #  """
-  #  measureList = self.inputToInternal(inputIn)
-  #  outputDict = {}
-  #  assert(len(self.features) == len(measureList))
-  #  for metricInstance in self.metricsDict.values():
-  #    metricEngine = MetricDistributor.factory.returnInstance('MetricDistributor', metricInstance)
-  #    for cnt in range(len(self.targets)):
-  #      nodeName = (str(self.targets[cnt]) + '_' + str(self.features[cnt])).replace("|","_")
-  #      varName = metricInstance.name + '|' + nodeName
-  #      output = metricEngine.evaluate(measureList[cnt], weights=self.weight, multiOutput=self.multiOutput)
-  #      outputDict[varName] = np.atleast_1d(output)
-  #  return outputDict

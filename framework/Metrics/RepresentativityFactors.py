@@ -100,25 +100,12 @@ class RepresentativityFactors(Metric):
       @ In, kwargs, dict, dictionary of parameters characteristic of each metric
       @ Out, value, float, metric result
     """
-    assert (isinstance(x, np.ndarray))
-    assert (isinstance(y, np.ndarray))
-    tempX = x
-    tempY = y
-    omegaNormTarget = tempX[0]
-    omegaNormScaledFeature = tempY[0]
-    pTime = tempX[1]
-    D = tempY[1]
-    betaFeature = tempX[2]
-    betaTarget = tempX[2]
-    distance = np.zeros((pTime.shape))
-    distanceSum = np.zeros((pTime.shape[0]))
-    sigma = np.zeros((pTime.shape[0]))
-    for cnt in range(len(pTime)):
-      distanceSquaredSum = 0
-      for cnt2 in range(len(pTime[cnt])):
-        distance[cnt][cnt2] = betaTarget[cnt][cnt2]*abs(D[cnt][cnt2])**0.5*(1/omegaNormTarget[cnt][cnt2]-1/omegaNormScaledFeature[cnt][cnt2])
-        distanceSum[cnt] += abs(distance[cnt][cnt2])
-        distanceSquaredSum += distance[cnt][cnt2]**2
-      sigma[cnt] = (1/len(sigma)*distanceSquaredSum)**0.5
-    value = distance
-    return value
+    # assert (isinstance(x, np.ndarray))
+    # assert (isinstance(y, np.ndarray))
+    senMeasurables = kwargs['senMeasurables']
+    senFOMs = kwargs['senFOMs']
+    covParameters = kwargs['covParameters']
+    r = (senFOMs @ covParameters @ senMeasurables.T)/\
+        np.sqrt(senFOMs @ covParameters @ senFOMs.T)/\
+        np.sqrt(senMeasurables @ covParameters @ senMeasurables.T)
+    return r

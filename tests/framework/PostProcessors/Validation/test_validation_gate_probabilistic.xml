@@ -33,9 +33,9 @@
       <Metric class="Metrics" type="PDFCommonArea">pdf_area</Metric>
       <Probabilistic name="myProbMetric">
          <!--  the Probabilistic Validation does  not -->
-          
+
       </Probabilistic>
-      
+
     </PostProcessor>
   </Models>
 

@@ -74,6 +74,7 @@ class Probabilistic(ValidationBase):
       @ In, currentInputs, list or DataObject, data object or a list of data objects
       @ Out, measureList, list of (feature, target), the list of the features and targets to measure the distance between
     """
+    aaaaaa
     if type(currentInputs) != list:
       currentInputs = [currentInputs]
     hasPointSet = False

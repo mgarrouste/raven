@@ -29,9 +29,10 @@
       <Features>outputDataMC1|ans</Features>
       <Targets>outputDataMC2|ans2</Targets>
       <Metric class="Metrics" type="RepresentativityFactors">simIndex</Metric>
+      <Derivatives type=??>?</Derivatives>
       <Representativity name="repPP">
-        <Parameters>outputDataMC1|x1,x2</Parameters>
-        <targetParameters>outputDataMC2|x1,x2</targetParameters>
+        <Parameters>outputDataMC1|x1,outputDataMC1|x2</Parameters>
+        <targetParameters>outputDataMC2|x1,outputDataMC2|x2</targetParameters>
       </Representativity>
 
     </PostProcessor>
