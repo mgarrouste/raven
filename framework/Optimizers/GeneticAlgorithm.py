@@ -34,7 +34,7 @@ import copy
 
 #Internal Modules------------------------------------------------------------------------------------
 from utils import mathUtils, randomUtils, InputData, InputTypes
-from utils.utils import dataArrayToDict, datasetToDataArray
+from utils.gaUtils import dataArrayToDict, datasetToDataArray
 from .RavenSampled import RavenSampled
 from .parentSelectors.parentSelectors import returnInstance as parentSelectionReturnInstance
 from .crossOverOperators.crossovers import returnInstance as crossoversReturnInstance
