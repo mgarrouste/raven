@@ -25,10 +25,7 @@ import time
 import abc
 import os
 import sys
-if sys.version_info.major > 2:
-  import pickle
-else:
-  import cPickle as pickle
+import pickle
 import copy
 import numpy as np
 #import pickle as cloudpickle
@@ -36,18 +33,20 @@ import cloudpickle
 #External Modules End--------------------------------------------------------------------------------
 
 #Internal Modules------------------------------------------------------------------------------------
-from BaseClasses import BaseType
+from EntityFactoryBase import EntityFactory
+from BaseClasses import BaseEntity, InputDataUser
 import Files
 from utils import utils
 from utils import InputData, InputTypes
 import Models
-from OutStreams import OutStreamBase
+from OutStreams import OutStreamEntity
 from DataObjects import DataObject
+from Databases import Database
 #Internal Modules End--------------------------------------------------------------------------------
 
 
 #----------------------------------------------------------------------------------------------------
-class Step(utils.metaclass_insert(abc.ABCMeta,BaseType)):
+class Step(utils.metaclass_insert(abc.ABCMeta, BaseEntity, InputDataUser)):
   """
     This class implement one step of the simulation pattern.
     Usage:
@@ -74,21 +73,20 @@ class Step(utils.metaclass_insert(abc.ABCMeta,BaseType)):
     self._localTakeAstepRun(inDictionary)   : this is where the step happens, after this call the output is ready
   """
 
-  def __init__(self):
+  def __init__(self, **kwargs):
     """
       Constructor
       @ In, None
       @ Out, None
     """
-    BaseType.__init__(self)
+    super().__init__(**kwargs)
     self.parList    = []   # List of list [[role played in the step, class type, specialization, global name (user assigned by the input)]]
     self.sleepTime  = 0.005  # Waiting time before checking if a run is finished
     #If a step possess re-seeding instruction it is going to ask to the sampler to re-seed according
     #  re-seeding = a number to be used as a new seed
     #  re-seeding = 'continue' the use the already present random environment
     #If there is no instruction (self.initSeed = None) the sampler will reinitialize
-    self.initSeed        = None
-    self._knownAttribute += ['clearRunDir', 'sleepTime','re-seeding','pauseAtEnd','fromDirectory','repeatFailureRuns']
+    self.initSeed = None
     self._excludeFromModelValidation = ['SolutionExport']
     # how to handle failed runs. By default, the step fails.
     # If the attribute "repeatFailureRuns" is inputted, a certain number of repetitions are going to be performed
@@ -105,7 +103,7 @@ class Step(utils.metaclass_insert(abc.ABCMeta,BaseType)):
       @ Out, inputSpecification, InputData.ParameterInput, class to use for
         specifying input of cls.
     """
-    inputSpecification = super(Step, cls).getInputSpecification()
+    inputSpecification = super().getInputSpecification()
     inputSpecification.description = r"""
                        The \textbf{MultiRun} step allows the user to assemble the calculation flow of
                        an analysis that requires multiple ``runs'' of the same model.
@@ -170,8 +168,6 @@ class Step(utils.metaclass_insert(abc.ABCMeta,BaseType)):
     """
     printString = 'For step of type {0:15} and name {1:15} the attribute {3:10} has been assigned to a not understandable value {2:10}'
     self.raiseADebug('move this tests to base class when it is ready for all the classes')
-    if not set(paramInput.parameterValues.keys()).issubset(set(self._knownAttribute)):
-      self.raiseAnError(IOError,'In step of type {0:15} and name {1:15} there are unknown attributes {2:100}'.format(self.type,self.name,str(paramInput.parameterValues.keys())))
     if 're-seeding' in paramInput.parameterValues:
       self.initSeed=paramInput.parameterValues['re-seeding']
       if self.initSeed.lower()   == "continue":
@@ -324,8 +320,7 @@ class Step(utils.metaclass_insert(abc.ABCMeta,BaseType)):
     """
     if self.pauseEndStep:
       for i in range(len(inDictionary['Output'])):
-        #if type(inDictionary['Output'][i]).__name__ not in ['str','bytes','unicode']:
-        if inDictionary['Output'][i].type in ['OutStreamPlot']:
+        if inDictionary['Output'][i].type in ['Plot']:
           inDictionary['Output'][i].endInstructions('interactive')
 
   def takeAstep(self,inDictionary):
@@ -357,7 +352,7 @@ class SingleRun(Step):
       @ In, None
       @ Out, None
     """
-    Step.__init__(self)
+    super().__init__()
     self.samplerType = 'Sampler'
     self.failedRuns = []
     self.lockedFileName = "ravenLocked.raven"
@@ -409,7 +404,7 @@ class SingleRun(Step):
     #use the models static testing of roles compatibility
     for role in roles:
       if role not in self._excludeFromModelValidation:
-        Models.validate(self.parList[modelIndex][2], role, toBeTested[role],self)
+        Models.validate(self.parList[modelIndex][2], role, toBeTested[role])
     self.raiseADebug('reactivate check on Input as soon as loadCsv gets out from the PostProcessor models!')
     if 'Output' not in roles:
       self.raiseAnError(IOError,'It is not possible a run without an Output!')
@@ -465,12 +460,13 @@ class SingleRun(Step):
     self.raiseADebug('for the role Model  the item of class {0:15} and name {1:15} has been initialized'.format(
       inDictionary['Model'].type,inDictionary['Model'].name))
 
-    #HDF5 initialization
+    #Database initialization
     for i in range(len(inDictionary['Output'])):
       #if type(inDictionary['Output'][i]).__name__ not in ['str','bytes','unicode']:
-      if 'HDF5' in inDictionary['Output'][i].type:
+      # if 'Database' in inDictionary['Output'][i].type:
+      if isinstance(inDictionary['Output'][i], Database):
         inDictionary['Output'][i].initialize(self.name)
-      elif isinstance(inDictionary['Output'][i], OutStreamBase):
+      elif isinstance(inDictionary['Output'][i], OutStreamEntity):
         inDictionary['Output'][i].initialize(inDictionary)
       self.raiseADebug('for the role Output the item of class {0:15} and name {1:15} has been initialized'.format(inDictionary['Output'][i].type,inDictionary['Output'][i].name))
     self._registerMetadata(inDictionary)
@@ -503,14 +499,14 @@ class SingleRun(Step):
     ## get an input field in the outputs variable that is not in the inputs
     ## variable defined above? - DPM 4/6/2017
     #empty dictionary corresponds to sampling data in MultiRun
-    model.submit(inputs, None, jobHandler, **{'SampledVars':{'prefix':'None'},'additionalEdits':{}})
+    model.submit(inputs, None, jobHandler, **{'SampledVars':{'prefix':'None'}, 'additionalEdits':{}})
     while True:
       finishedJobs = jobHandler.getFinished()
       for finishedJob in finishedJobs:
         if finishedJob.getReturnCode() == 0:
           # if the return code is > 0 => means the system code crashed... we do not want to make the statistics poor => we discard this run
           for output in outputs:
-            if not isinstance(output, OutStreamBase):
+            if not isinstance(output, OutStreamEntity):
               model.collectOutput(finishedJob, output)
             else:
               output.addOutput()
@@ -567,7 +563,7 @@ class MultiRun(SingleRun):
       @ In, None
       @ Out, None
     """
-    SingleRun.__init__(self)
+    super().__init__()
     self._samplerInitDict = {} #this is a dictionary that gets sent as key-worded list to the initialization of the sampler
     self.counter          = 0  #just an handy counter of the runs already performed
     self.printTag = 'STEP MULTIRUN'
@@ -625,7 +621,7 @@ class MultiRun(SingleRun):
     self._outputDictCollectionLambda = []
     # set up output collection lambdas
     for outIndex, output in enumerate(inDictionary['Output']):
-      if not isinstance(output, OutStreamBase):
+      if not isinstance(output, OutStreamEntity):
         if 'SolutionExport' in inDictionary.keys() and output.name == inDictionary['SolutionExport'].name:
           self._outputCollectionLambda.append((lambda x:None, outIndex))
           self._outputDictCollectionLambda.append((lambda x:None, outIndex))
@@ -773,11 +769,11 @@ class MultiRun(SingleRun):
       @ In, sampler, Sampler, the sampler in charge of generating the sample
       @ In, model, Model, the model in charge of evaluating the sample
       @ In, inputs, object, the raven object used as the input in this step
-        (i.e., a DataObject, File, or HDF5, I guess? Maybe these should all
+        (i.e., a DataObject, File, or Database, I guess? Maybe these should all
         inherit from some base "Data" so that we can ensure a consistent
         interface for these?)
       @ In, outputs, object, the raven object used as the output in this step
-        (i.e., a DataObject, File, or HDF5, I guess? Maybe these should all
+        (i.e., a DataObject, File, or Database, I guess? Maybe these should all
         inherit from some base "Data" so that we can ensure a consistent
         interface for these?)
       @ In, jobHandler, object, the raven object used to handle jobs
@@ -815,11 +811,11 @@ class MultiRun(SingleRun):
       @ In, sampler, Sampler, the sampler in charge of generating the sample
       @ In, model, Model, the model in charge of evaluating the sample
       @ In, inputs, object, the raven object used as the input in this step
-        (i.e., a DataObject, File, or HDF5, I guess? Maybe these should all
+        (i.e., a DataObject, File, or Database, I guess? Maybe these should all
         inherit from some base "Data" so that we can ensure a consistent
         interface for these?)
       @ In, outputs, object, the raven object used as the output in this step
-        (i.e., a DataObject, File, or HDF5, I guess? Maybe these should all
+        (i.e., a DataObject, File, or Database, I guess? Maybe these should all
         inherit from some base "Data" so that we can ensure a consistent
         interface for these?)
       @ In, jobHandler, object, the raven object used to handle jobs
@@ -861,7 +857,7 @@ class RomTrainer(Step):
       @ In, None
       @ Out, None
     """
-    Step.__init__(self)
+    super().__init__()
     self.printTag = 'STEP ROM TRAINER'
 
   def _localInputAndCheckParam(self,paramInput):
@@ -924,7 +920,7 @@ class IOStep(Step):
       @ In, None
       @ Out, None
     """
-    Step.__init__(self)
+    super().__init__()
     self.printTag = 'STEP IOCOMBINED'
     self.fromDirectory = None
 
@@ -936,7 +932,7 @@ class IOStep(Step):
     """
     outputs         = []
     for out in inDictionary['Output']:
-      if not isinstance(out, OutStreamBase):
+      if not isinstance(out, OutStreamEntity):
         outputs.append(out)
     return outputs
 
@@ -952,8 +948,8 @@ class IOStep(Step):
     """
     # check if #inputs == #outputs
     # collect the outputs without outstreams
-    outputs         = self.__getOutputs(inDictionary)
-    databases       = set()
+    outputs = self.__getOutputs(inDictionary)
+    databases = set()
     self.actionType = []
     errTemplate = 'In Step "{name}": When the Input is {inp}, this step accepts only {okay} as Outputs, ' +\
                   'but received "{received}" instead!'
@@ -961,30 +957,30 @@ class IOStep(Step):
       self.raiseAnError(IOError,'In Step named ' + self.name + \
           ', the number of Inputs != number of Outputs, and there are Outputs. '+\
           'Inputs: %i Outputs: %i'%(len(inDictionary['Input']),len(outputs)) )
-    #determine if this is a DATAS->HDF5, HDF5->DATAS or both.
+    #determine if this is a DATAS->Database, Database->DATAS or both.
     # also determine if this is an invalid combination
     for i in range(len(outputs)):
-      # from HDF5 to ...
-      if inDictionary['Input'][i].type == 'HDF5':
+      # from Database to ...
+      if isinstance(inDictionary['Input'][i], Database):
         ## ... dataobject
         if isinstance(outputs[i], DataObject.DataObject):
-          self.actionType.append('HDF5-dataObjects')
+          self.actionType.append('Database-dataObjects')
         ## ... anything else
         else:
           self.raiseAnError(IOError,errTemplate.format(name = self.name,
-                                                       inp = 'HDF5',
+                                                       inp = 'Database',
                                                        okay = 'DataObjects',
                                                        received = inDictionary['Output'][i].type))
       # from DataObject to ...
       elif  isinstance(inDictionary['Input'][i], DataObject.DataObject):
-        ## ... HDF5
-        if outputs[i].type == 'HDF5':
-          self.actionType.append('dataObjects-HDF5')
+        ## ... Database
+        if isinstance(outputs[i], Database):
+          self.actionType.append('dataObjects-Database')
         ## ... anything else
         else:
           self.raiseAnError(IOError,errTemplate.format(name = self.name,
                                                        inp = 'DataObjects',
-                                                       okay = 'HDF5',
+                                                       okay = 'Database',
                                                        received = inDictionary['Output'][i].type))
       # from ROM model to ...
       elif isinstance(inDictionary['Input'][i], Models.ROM):
@@ -1019,15 +1015,15 @@ class IOStep(Step):
         self.raiseAnError(IOError,
                           'In Step "{name}": This step accepts only {okay} as Input. Received "{received}" instead!'
                           .format(name = self.name,
-                                  okay = 'HDF5, DataObjects, ROM, or Files',
+                                  okay = 'Database, DataObjects, ROM, or Files',
                                   received = inDictionary['Input'][i].type))
     # check actionType for fromDirectory
     if self.fromDirectory and len(self.actionType) == 0:
       self.raiseAnError(IOError,'In Step named ' + self.name + '. "fromDirectory" attribute provided but not conversion action is found (remove this atttribute for OutStream actions only"')
-    #Initialize all the HDF5 outputs.
+    #Initialize all the Database outputs.
     for i in range(len(outputs)):
       #if type(outputs[i]).__name__ not in ['str','bytes','unicode']:
-      if 'HDF5' in inDictionary['Output'][i].type:
+      if isinstance(inDictionary['Output'][i], Database):
         if outputs[i].name not in databases:
           databases.add(outputs[i].name)
           outputs[i].initialize(self.name)
@@ -1043,7 +1039,7 @@ class IOStep(Step):
 
     #Initialize all the OutStreams
     for output in inDictionary['Output']:
-      if isinstance(output, OutStreamBase):
+      if isinstance(output, OutStreamEntity):
         output.initialize(inDictionary)
         self.raiseADebug('for the role Output the item of class {0:15} and name {1:15} has been initialized'.format(output.type,output.name))
     # register metadata
@@ -1057,21 +1053,12 @@ class IOStep(Step):
     """
     outputs = self.__getOutputs(inDictionary)
     for i in range(len(outputs)):
-      if self.actionType[i] == 'HDF5-dataObjects':
-        #inDictionary['Input'][i] is HDF5, outputs[i] is a DataObjects
-        ## read the HDF5 into a data object
-        allRealizations = inDictionary['Input'][i].allRealizations()
-        ## TODO convert to load function when it can handle unstructured multiple realizations
-        for rlz in allRealizations:
-          outputs[i].addRealization(rlz)
-      elif self.actionType[i] == 'dataObjects-HDF5':
-        #inDictionary['Input'][i] is a dataObjects, outputs[i] is HDF5
-        ## write the data object into a HDF5
-        ## TODO convert to load function when it can handle unstructured multiple realizations
-        for rlzNo in range(len(inDictionary['Input'][i])):
-          rlz = inDictionary['Input'][i].realization(rlzNo, unpackXArray=True)
-          rlz = dict((var,np.atleast_1d(val)) for var, val in rlz.items())
-          outputs[i].addRealization(rlz)
+      if self.actionType[i] == 'Database-dataObjects':
+        #inDictionary['Input'][i] is Database, outputs[i] is a DataObjects
+        inDictionary['Input'][i].loadIntoData(outputs[i])
+      elif self.actionType[i] == 'dataObjects-Database':
+        #inDictionary['Input'][i] is a dataObjects, outputs[i] is Database
+        outputs[i].saveDataToFile(inDictionary['Input'][i])
 
       elif self.actionType[i] == 'ROM-dataObjects':
         #inDictionary['Input'][i] is a ROM, outputs[i] is dataObject
@@ -1122,7 +1109,6 @@ class IOStep(Step):
         # train the ROM from the unpickled object
         outputs[i].train(unpickledObj)
         # reseed as requested
-        loadSettings['messageHandler'] = self.messageHandler
         outputs[i].setAdditionalParams(loadSettings)
 
       elif self.actionType[i] == 'FILES-dataObjects':
@@ -1137,7 +1123,7 @@ class IOStep(Step):
         self.raiseAnError(IOError,"Unknown action type "+self.actionType[i])
 
     for output in inDictionary['Output']:
-      if isinstance(output, OutStreamBase):
+      if isinstance(output, OutStreamEntity):
         output.addOutput()
 
   def _localGetInitParams(self):
@@ -1162,20 +1148,6 @@ class IOStep(Step):
       self.fromDirectory = paramInput.parameterValues['fromDirectory']
 
 
-__interFaceDict                      = {}
-__interFaceDict['SingleRun'        ] = SingleRun
-__interFaceDict['MultiRun'         ] = MultiRun
-__interFaceDict['IOStep'           ] = IOStep
-__interFaceDict['RomTrainer'       ] = RomTrainer
-__interFaceDict['PostProcess'      ] = PostProcess
-__base                               = 'Step'
 
-def returnInstance(Type,caller):
-  """
-    Returns the instance of a Step
-    @ In, Type, string, requested step
-    @ In, caller, object, requesting object
-    @ Out, __interFaceDict, instance, instance of the step
-  """
-  return __interFaceDict[Type]()
-  caller.raiseAnError(NameError,'not known '+__base+' type '+Type)
+factory = EntityFactory('Step')
+factory.registerAllSubtypes(Step)
