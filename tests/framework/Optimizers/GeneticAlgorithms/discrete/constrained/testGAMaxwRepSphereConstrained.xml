@@ -128,7 +128,7 @@
     <External file="../../../../../AnalyticModels/optimizing/myLocalSum.py" name="constraint1">
       <variables>x1,x2,x3</variables>
     </External>
-    <External file="../../../../../AnalyticModels/optimizing/myLocalSumSphereConstraint.py" name="constraint2">
+    <External file="../../../../../AnalyticModels/optimizing/myLocalSumSphereConstrained.py" name="constraint2">
       <variables>x1,x2,x3</variables>
     </External>
   </Functions>
