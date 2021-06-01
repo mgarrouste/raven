@@ -20,6 +20,7 @@
 import copy
 import numpy as np
 import xarray as xr
+import collections
 
 def dataArrayToDict(singlePointDataArray):
   """
@@ -27,7 +28,7 @@ def dataArrayToDict(singlePointDataArray):
     @ In, singlePointDataarray, xr.dataarray, the data array containing a single point in the realization
     @ Out, pointDict, dict, a dictionary containing the realization without the objective function
   """
-  pointDict={}
+  pointDict = collections.OrderedDict()
   for var in singlePointDataArray.indexes['Gene']:
     pointDict[var] = singlePointDataArray.loc[var].data
   return pointDict
