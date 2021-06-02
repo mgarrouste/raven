@@ -165,7 +165,7 @@
     type = 'RavenFramework'
     input = 'continuous/constrained/testGARosenbrockCubicandLineConstrained.xml'
     [./csv]
-     type = OrderedCSV
+     type = UnorderedCSV
      output = 'continuous/constrained/rosenbrockCubicandLineConstrained/opt_export_0.csv'
      rel_err = 0.001
     [../]
