@@ -55,7 +55,7 @@
       <samplerInit>
         <limit>20</limit>
         <initialSeed>42</initialSeed>
-        <writeSteps>every</writeSteps>
+        <writeSteps>final</writeSteps>
       </samplerInit>
 
       <GAparams>
