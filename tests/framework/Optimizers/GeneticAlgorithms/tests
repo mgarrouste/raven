@@ -183,16 +183,6 @@
     [../]
   [../]
 
-  [./rosenbrockCubicandLineConstrained]
-    type = 'RavenFramework'
-    input = 'continuous/constrained/testGARosenbrockCubicandLineConstrained.xml'
-    [./csv]
-     type = UnorderedCSV
-     output = 'continuous/constrained/rosenbrockCubicandLineConstrained/opt_export_0.csv'
-     rel_err = 0.001
-    [../]
-  [../]
-
   [./simionescuConstrained]
     type = 'RavenFramework'
     input = 'continuous/constrained/testGASimionescuConstrained.xml'
