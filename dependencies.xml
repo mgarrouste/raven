@@ -41,7 +41,7 @@ Note all install methods after "main" take
     <statsmodels/>
     <cloudpickle>1.6</cloudpickle>
     <tensorflow>1.15</tensorflow>
-    <python skip_check='True'>3</python>
+    <python skip_check='True'>3.7</python>
     <hdf5 skip_check='True'/>
     <swig skip_check='True'/>
     <pylint/>
