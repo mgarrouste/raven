@@ -27,7 +27,8 @@ def evaluate(x,y):
     @ In, y, float, value
     @ Out, evaluate, value at x, y
   """
-  return np.sin(y)*np.exp(1.-np.cos(x))**2 + np.cos(x)*np.exp(1.-np.sin(y))**2 + (x-y)**2
+  evaluate = np.sin(y)*np.exp(1.-np.cos(x))**2 + np.cos(x)*np.exp(1.-np.sin(y))**2 + (x-y)**2
+  return evaluate
 
 def constraint(x,y):
   """
