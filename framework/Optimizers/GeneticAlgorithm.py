@@ -29,7 +29,6 @@ import numpy as np
 from scipy.special import comb
 from collections import deque, defaultdict
 import xarray as xr
-import copy
 #External Modules End--------------------------------------------------------------------------------
 
 #Internal Modules------------------------------------------------------------------------------------
@@ -388,7 +387,7 @@ class GeneticAlgorithm(RavenSampled):
   # Run Methods #
   ###############
 
-  def _useRealization(self, info, rlz1):
+  def _useRealization(self, info, rlz):
     """
       Used to feedback the collected runs into actionable items within the sampler.
       This is called by localFinalizeActualSampling, and hence should contain the main skeleton.
@@ -402,8 +401,6 @@ class GeneticAlgorithm(RavenSampled):
       self._closeTrajectory(t, 'cancel', 'Currently GA is single trajectory',0)#, None
     self.incrementIteration(traj)
     info['step'] = self.counter
-
-    rlz=copy.deepcopy(rlz1)
 
     # Developer note: each algorithm step is indicated by a number followed by the generation number
     # e.g., '5 @ n-1' refers to step 5 for generation n-1 (i.e., previous generation)
@@ -473,7 +470,7 @@ class GeneticAlgorithm(RavenSampled):
       if needsRepair:
         children = self._repairInstance(childrenMutated,variables=list(self.toBeSampled),distInfo=self.distDict)
       else:
-        children = copy.deepcopy(childrenMutated)
+        children = childrenMutated
       # Make sure no children are exactly similar to parents
       flag = True
       counter = 0
@@ -503,7 +500,7 @@ class GeneticAlgorithm(RavenSampled):
         newRlz={}
         for _,var in enumerate(self.toBeSampled.keys()):
           newRlz[var] = float(daChildren.loc[i,var].values)
-        self._submitRun(copy.deepcopy(newRlz), traj, self.getIteration(traj))
+        self._submitRun(newRlz, traj, self.getIteration(traj))
 
   def _submitRun(self, point, traj, step, moreInfo=None):
     """
