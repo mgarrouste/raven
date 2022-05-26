@@ -20,6 +20,7 @@ from collections import defaultdict
 
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
+from matplotlib.ticker import MaxNLocator
 
 from .PlotInterface import PlotInterface
 from ...utils import InputData, InputTypes
@@ -104,7 +105,7 @@ class OptPath(PlotInterface):
       @ Out, None
     """
     fig, axes = plt.subplots(len(self.vars), 1, sharex=True)
-    fig.suptitle('Optimization Path')
+    #fig.suptitle('Optimization Path')
     for r in range(len(self.source)): # realizations
       rlz = self.source.realization(index=r, asDataSet=True, unpackXArray=False)
       accepted = rlz['accepted']
@@ -114,17 +115,43 @@ class OptPath(PlotInterface):
         self.addPoint(ax, r, value, accepted)
         if v == len(self.vars) - 1:
           ax.set_xlabel('Optimizer Iteration')
-        ax.set_ylabel(var)
+        # Fix y label
+        ylabel = str(var).replace("_capacity","")
+        ylabel = " ".join([i if i.isupper() else i.title() for i in ylabel.split("_")])
+        ax.set_ylabel(ylabel)
+        ax.grid()
     # common legend
     fig.subplots_adjust(right=0.80)
     lns = []
     for cond in self.markerMap.keys():
       lns.append(Line2D([0], [0], color=self.markerMap[cond][0], marker=self.markerMap[cond][1]))
-    fig.legend(lns, list(self.markerMap.keys()),
+    lg = fig.legend(lns, list(self.markerMap.keys()),
                loc='center right',
                borderaxespad=0.1,
+               markerscale=1.2,
+               bbox_to_anchor=(1, 0.5),
                title='Legend')
+    # Only integer values for x axis
+    ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+    # Space adjustment
+    plt.setp(lg.get_title(), multialignment="center")
+    fig.tight_layout()
+    # Have to update canvas to get actual legend width
+    fig.canvas.draw()
+    # The following will place the legend in a non-weird place
+    frame_w = lg.get_frame().get_width()
+    fig.subplots_adjust(right=self.get_adjust(lg.get_frame().get_width()))
     plt.savefig(f'{self.name}.png')
+
+  def get_adjust(self, width):
+    if width < 149:
+        return 0.78
+    elif width < 164:
+        return 0.73
+    elif width < 169:
+        return 0.73
+    else:
+        return 0.7
 
   def addPoint(self, ax, i, value, accepted):
     """
