@@ -41,7 +41,14 @@ class OptPath(PlotInterface):
         descr=r"""The name of the RAVEN DataObject from which the data should be taken for this plotter.
               This should be the SolutionExport for a MultiRun with an Optimizer."""))
     spec.addSub(InputData.parameterInputFactory('vars', contentType=InputTypes.StringListType,
-        descr=r"""Names of the variables from the DataObject whose optimization paths should be plotted."""))
+        descr=r"""Names of the variables from the DataObject that will be plotted on the optimization path plot."""))
+    varUnitsNode = InputData.parameterInputFactory('varUnits',
+        descr=r"""Units of the variables from the DataObject that will be plotted on the optimization path plot.""")
+    varNode = InputData.parameterInputFactory('var', contentType=InputTypes.StringType,
+        descr="""Name of the variable that unit is begin defined.""" )
+    varNode.addParam("unit", InputTypes.StringType, True, descr="""Unit of the variable""")
+    varUnitsNode.addSub(varNode)
+    spec.addSub(varUnitsNode)
     return spec
 
   def __init__(self):
@@ -55,6 +62,7 @@ class OptPath(PlotInterface):
     self.source = None      # reference to DataObject source
     self.sourceName = None  # name of DataObject source
     self.vars = None        # variables to plot
+    self.varUnits = {}      # units of variables to plot
     self.markerMap = {'first': 'yo',
                       'accepted': 'go',
                       'rejected': 'rx',
@@ -71,6 +79,10 @@ class OptPath(PlotInterface):
     super().handleInput(spec)
     self.sourceName = spec.findFirst('source').value
     self.vars = spec.findFirst('vars').value
+    # create dic ngcc_capacity: unit
+    vU = spec.findFirst('varUnits')
+    for i in vU.findAll('var'):
+      self.varUnits[i.value]= i.parameterValues['unit']
     # checker; this should be superceded by "required" in input params
     if self.sourceName is None:
       self.raiseAnError(IOError, "Missing <source> node!")
@@ -118,6 +130,11 @@ class OptPath(PlotInterface):
         # Fix y label
         ylabel = str(var).replace("_capacity","")
         ylabel = " ".join([i if i.isupper() else i.title() for i in ylabel.split("_")])
+        try:
+          unit = self.varUnits[var] # Capacity unit
+          ylabel += "\n(${}$)".format(unit)
+        except KeyError:
+          pass
         ax.set_ylabel(ylabel)
         ax.grid()
     # common legend
@@ -135,11 +152,11 @@ class OptPath(PlotInterface):
     ax.xaxis.set_major_locator(MaxNLocator(integer=True))
     # Space adjustment
     plt.setp(lg.get_title(), multialignment="center")
+    plt.subplots_adjust(hspace=0.1)
     fig.tight_layout()
     # Have to update canvas to get actual legend width
     fig.canvas.draw()
     # The following will place the legend in a non-weird place
-    frame_w = lg.get_frame().get_width()
     fig.subplots_adjust(right=self.get_adjust(lg.get_frame().get_width()))
     plt.savefig(f'{self.name}.png')
 
