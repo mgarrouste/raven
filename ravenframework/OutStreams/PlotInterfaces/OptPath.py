@@ -21,6 +21,9 @@ from collections import defaultdict
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 from matplotlib.ticker import MaxNLocator
+import matplotlib.ticker as tic
+import numpy as np
+import pandas as pd
 
 from .PlotInterface import PlotInterface
 from ...utils import InputData, InputTypes
@@ -63,11 +66,16 @@ class OptPath(PlotInterface):
     self.sourceName = None  # name of DataObject source
     self.vars = None        # variables to plot
     self.varUnits = {}      # units of variables to plot
-    self.markerMap = {'first': 'yo',
-                      'accepted': 'go',
-                      'rejected': 'rx',
-                      'rerun': 'c.',
-                      'final': 'mo'}
+    self.markerMap = {'first': 'o',
+                      'accepted': 'o',
+                      'rejected': 'x',
+                      'rerun': '.',
+                      'final': 'o'}
+    self.colorMap = {'first': 'y',
+                      'accepted': 'g',
+                      'rejected': 'r',
+                      'rerun': 'c',
+                      'final': 'm'}
     self.markers = defaultdict(lambda: 'k.', self.markerMap)
 
   def handleInput(self, spec):
@@ -117,16 +125,63 @@ class OptPath(PlotInterface):
       @ Out, None
     """
     fig, axes = plt.subplots(len(self.vars), 1, sharex=True)
-    #fig.suptitle('Optimization Path')
+    axes[-1].set_xlabel("Optimizer Iteration")
+    data =[]
     for r in range(len(self.source)): # realizations
+      data.append(self.source.realization(index=r, asDataSet=True, unpackXArray=False))
+    rlz = pd.DataFrame(data)
+    dfa = rlz.query("accepted in ['first', 'accepted']")
+    dfr = rlz.query("accepted not in ['first', 'accepted']")
+    for var, ax in zip(self.vars, axes):
+        # Sci. notation for everything > 1000.
+        ax.ticklabel_format(axis="y", style="sci", scilimits=(0, 3))
+        # Title Case Vars, but don't change abbreviations...
+        title = " ".join([i if i.isupper() else i.title() for i in var.split("_")])
+        ax.set_title(title)
+        try:
+          unit = self.varUnits[var] # Capacity unit
+          ylabel = "\n(${}$)".format(unit)
+          ax.set_ylabel(ylabel)
+        except KeyError:
+          pass          
+        for k, d in dfr.groupby("accepted"):
+            y = np.abs(d[var].to_numpy()) 
+            #if var == 'mean_NPV':
+            #    y = d[var].to_numpy() - scalar
+            ax.scatter(
+                d.iteration.to_numpy(),
+                y,
+                c=d.accepted.map(self.colorMap),
+                label=k,
+                marker="o",
+                alpha=0.8,
+            )
+        y = np.abs(dfa[var].to_numpy()) 
+        if var == 'mean_NPV':
+            y = dfa[var].to_numpy() 
+        ax.plot(
+            dfa.iteration.to_numpy(),
+            y,
+            label="accepted",
+            color=self.colorMap["accepted"],
+            marker=self.markerMap["accepted"],
+            linestyle="-",
+        )
+        if 'storage' in var:
+            yabs_max = abs(max(ax.get_ylim(), key=abs)) + 0.10
+            ax.set_ylim(bottom=-0.10, top=yabs_max)
+            formatter = tic.StrMethodFormatter('{x:.2f}')
+            ax.yaxis.set_major_formatter(formatter)
+        ax.grid()
+    """ for r in range(len(self.source)): # realizations
       rlz = self.source.realization(index=r, asDataSet=True, unpackXArray=False)
+      dfa = rlz.query("accepted in ['first', 'accepted']")
+      dfr = rlz.query("accepted not in ['first', 'accepted']")
       accepted = rlz['accepted']
       for v, var in enumerate(self.vars):
         ax = axes[v]
         value = rlz[var]
-        self.addPoint(ax, r, value, accepted)
-        if v == len(self.vars) - 1:
-          ax.set_xlabel('Optimizer Iteration')
+        #self.addPoint(ax, r, value, accepted)
         # Fix y label
         ylabel = str(var).replace("_capacity","")
         ylabel = " ".join([i if i.isupper() else i.title() for i in ylabel.split("_")])
@@ -136,13 +191,14 @@ class OptPath(PlotInterface):
         except KeyError:
           pass
         ax.set_ylabel(ylabel)
-        ax.grid()
+        ax.grid() """
     # common legend
     fig.subplots_adjust(right=0.80)
-    lns = []
-    for cond in self.markerMap.keys():
-      lns.append(Line2D([0], [0], color=self.markerMap[cond][0], marker=self.markerMap[cond][1]))
-    lg = fig.legend(lns, list(self.markerMap.keys()),
+    # Set middle axes to have legend to the right of the plot.
+    # Also reorder legend to have 'accepted' appear on top.
+    handles, labels = axes[-1].get_legend_handles_labels()
+    labels, handles = zip(*sorted(zip(labels, handles), key=lambda t: t[0]))
+    lg = fig.legend(handles, labels,
                loc='center right',
                borderaxespad=0.1,
                markerscale=1.2,
