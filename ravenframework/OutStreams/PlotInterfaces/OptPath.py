@@ -173,25 +173,6 @@ class OptPath(PlotInterface):
             formatter = tic.StrMethodFormatter('{x:.2f}')
             ax.yaxis.set_major_formatter(formatter)
         ax.grid()
-    """ for r in range(len(self.source)): # realizations
-      rlz = self.source.realization(index=r, asDataSet=True, unpackXArray=False)
-      dfa = rlz.query("accepted in ['first', 'accepted']")
-      dfr = rlz.query("accepted not in ['first', 'accepted']")
-      accepted = rlz['accepted']
-      for v, var in enumerate(self.vars):
-        ax = axes[v]
-        value = rlz[var]
-        #self.addPoint(ax, r, value, accepted)
-        # Fix y label
-        ylabel = str(var).replace("_capacity","")
-        ylabel = " ".join([i if i.isupper() else i.title() for i in ylabel.split("_")])
-        try:
-          unit = self.varUnits[var] # Capacity unit
-          ylabel += "\n(${}$)".format(unit)
-        except KeyError:
-          pass
-        ax.set_ylabel(ylabel)
-        ax.grid() """
     # common legend
     fig.subplots_adjust(right=0.80)
     # Set middle axes to have legend to the right of the plot.
