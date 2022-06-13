@@ -130,8 +130,9 @@ class OptPath(PlotInterface):
     for r in range(len(self.source)): # realizations
       data.append(self.source.realization(index=r, asDataSet=True, unpackXArray=False))
     rlz = pd.DataFrame(data)
-    dfa = rlz.query("accepted in ['first', 'accepted']")
-    dfr = rlz.query("accepted not in ['first', 'accepted']")
+    dfa = rlz.query("accepted in ['accepted']")
+    dfr = rlz.query("accepted not in ['accepted', 'first', 'final']")
+    dfff = rlz.query("accepted in ['first', 'final']")
     for var, ax in zip(self.vars, axes):
         # Sci. notation for everything > 1000.
         ax.ticklabel_format(axis="y", style="sci", scilimits=(0, 3))
@@ -172,6 +173,18 @@ class OptPath(PlotInterface):
             ax.set_ylim(bottom=-0.10, top=yabs_max)
             formatter = tic.StrMethodFormatter('{x:.2f}')
             ax.yaxis.set_major_formatter(formatter)
+        for k, d in dfff.groupby("accepted"):
+            y = d[var].to_numpy()
+            if 'capacity' in var: 
+              y = np.abs(d[var].to_numpy())
+            ax.scatter(
+                d.iteration.to_numpy(),
+                y,
+                c=d.accepted.map(self.colorMap),
+                label=k,
+                marker=self.markerMap[k],
+                alpha=0.7,
+            )
         ax.grid()
     # common legend
     fig.subplots_adjust(right=0.80)
