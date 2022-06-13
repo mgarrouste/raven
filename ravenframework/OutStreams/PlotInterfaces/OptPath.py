@@ -145,20 +145,20 @@ class OptPath(PlotInterface):
         except KeyError:
           pass          
         for k, d in dfr.groupby("accepted"):
-            y = np.abs(d[var].to_numpy()) 
-            #if var == 'mean_NPV':
-            #    y = d[var].to_numpy() - scalar
+            y = d[var].to_numpy()
+            if 'capacity' in var: 
+              y = np.abs(d[var].to_numpy())
             ax.scatter(
                 d.iteration.to_numpy(),
                 y,
                 c=d.accepted.map(self.colorMap),
                 label=k,
-                marker="o",
-                alpha=0.8,
+                marker=self.markerMap[k],
+                alpha=0.7,
             )
-        y = np.abs(dfa[var].to_numpy()) 
-        if var == 'mean_NPV':
-            y = dfa[var].to_numpy() 
+        y = dfa[var].to_numpy()
+        if 'capacity' in var:
+            y = np.abs(dfa[var].to_numpy())
         ax.plot(
             dfa.iteration.to_numpy(),
             y,
