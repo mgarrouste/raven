@@ -108,6 +108,12 @@ def setupCpp():
   else:
     ##TODO REMOVE PP3 WHEN RAY IS AVAILABLE FOR WINDOWS
     utils.add_path_recursively(os.path.join(frameworkDir,'contrib','pp'))
+  #XXX Needed for HERON on cluster
+  ravenDir = os.path.dirname(frameworkDir)
+  heronSrc = os.path.join(ravenDir, "plugins", "HERON", "src")
+  if os.path.exists(heronSrc) and heronSrc not in sys.path:
+    sys.path.append(heronSrc)
+    sys.path.append(os.path.join(ravenDir, "scripts"))
 
 def checkVersions():
   """
